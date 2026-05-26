@@ -8,17 +8,17 @@ internal sealed class BuyPaymentSession
     public ulong PartnerContentId;
     public uint PartnerEntityId;
 
-    /// <summary>Committed order total (plan step 6: updated only on trade complete).</summary>
+    /// <summary>Committed order total (updated on trade complete).</summary>
     public int TotalGil;
 
-    /// <summary>Running order total for the open trade (plan step 4: current_total += items).</summary>
+    /// <summary>Running order total for the open trade.</summary>
     public int CurrentTotalGil;
 
     public int PaidGil;
-    /// <summary>Items purchased so far in this buy session (merged).</summary>
-    public List<TradeAddonReader.OpponentItemStack> OrderItems = [];
 
-    /// <summary>Uses the higher of committed vs running total minus paid (plan: current_total - payd / total - payd).</summary>
+    /// <summary>Items purchased in this session (reserved for future use).</summary>
+    public List<TradeItemStack> OrderItems = [];
+
     public int UnpaidGil => Math.Max(0, Math.Max(TotalGil, CurrentTotalGil) - PaidGil);
 
     public void Reset()

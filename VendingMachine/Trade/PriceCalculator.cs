@@ -6,21 +6,13 @@ public static class PriceCalculator
 {
     private const int StackSize = 999;
 
-    /// <summary>Sum of priced opponent slots (live trade) or stored stacks.</summary>
+    /// <summary>Sum of priced opponent slots in the open trade window.</summary>
     public static int CalculateBuyTotal(IReadOnlyList<BuyEntry> prices)
     {
         if (!TradeAddonReader.IsTradeSessionActive())
             return 0;
 
         return SumOpponentTradeSlots(prices);
-    }
-
-    public static int CalculateBuyTotal(IEnumerable<TradeAddonReader.OpponentItemStack> storedOffer, IReadOnlyList<BuyEntry> prices)
-    {
-        if (TradeAddonReader.IsTradeSessionActive())
-            return SumOpponentTradeSlots(prices);
-
-        return SumItemStacks(storedOffer, prices);
     }
 
     private static int SumOpponentTradeSlots(IReadOnlyList<BuyEntry> prices)
@@ -41,21 +33,6 @@ public static class PriceCalculator
         return total;
     }
 
-    private static int SumItemStacks(IEnumerable<TradeAddonReader.OpponentItemStack> items, IReadOnlyList<BuyEntry> prices)
-    {
-        var priceByItem = prices.ToDictionary(x => x.ItemId, x => x.PricePerStackGil);
-        var total = 0;
-
-        foreach (var stack in items)
-        {
-            var itemId = stack.ItemId % 1_000_000;
-            if (priceByItem.TryGetValue(itemId, out var pricePerStack))
-                total += GilForQuantity(stack.Quantity, pricePerStack);
-        }
-
-        return total;
-    }
-
     /// <summary>Full stacks (999) at stack price; remainder at per-item price (stack ÷ 1000, rounded up).</summary>
     public static int GilForQuantity(int quantity, int pricePerStack)
     {
@@ -66,15 +43,15 @@ public static class PriceCalculator
         return quantity / StackSize * pricePerStack + quantity % StackSize * pricePerItem;
     }
 
-    public static List<TradeAddonReader.OpponentItemStack> MergeBuyOrderItems(
-        IEnumerable<TradeAddonReader.OpponentItemStack> baseline,
-        IEnumerable<TradeAddonReader.OpponentItemStack> current)
+    public static List<TradeItemStack> MergeBuyOrderItems(
+        IEnumerable<TradeItemStack> baseline,
+        IEnumerable<TradeItemStack> current)
     {
         var merged = baseline
-            .GroupBy(s => s.ItemId % 1_000_000)
+            .GroupBy(s => ItemIdHelper.Normalize(s.ItemId))
             .ToDictionary(
                 g => g.Key,
-                g => new TradeAddonReader.OpponentItemStack
+                g => new TradeItemStack
                 {
                     ItemId = g.First().ItemId,
                     Quantity = g.Sum(s => s.Quantity),
@@ -82,14 +59,14 @@ public static class PriceCalculator
 
         foreach (var stack in current)
         {
-            var itemId = stack.ItemId % 1_000_000;
+            var itemId = ItemIdHelper.Normalize(stack.ItemId);
             if (!merged.TryGetValue(itemId, out var existing))
             {
-                merged[itemId] = new TradeAddonReader.OpponentItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity };
+                merged[itemId] = new TradeItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity };
                 continue;
             }
 
-            merged[itemId] = new TradeAddonReader.OpponentItemStack
+            merged[itemId] = new TradeItemStack
             {
                 ItemId = existing.ItemId,
                 Quantity = Math.Max(existing.Quantity, stack.Quantity),

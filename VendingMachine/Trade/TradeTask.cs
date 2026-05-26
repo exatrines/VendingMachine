@@ -1,18 +1,18 @@
 using ECommons.Automation;
 using ECommons.Throttlers;
 using ECommons.UIHelpers.AddonMasterImplementations;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace VendingMachine.Trade;
 
 internal static unsafe class TradeTask
 {
-    private const int NumericWaitMs = 3_000;
-    private const int TradeSlotWaitMs = 400;
+    private const int NumericWaitMs = 5_000;
+    private const int TradeSlotWaitMs = 5_000;
 
     private static long numericWaitDeadlineMs;
     private static long tradeSlotWaitDeadlineMs;
+    private static int pendingOfferSlotsBefore;
 
     internal static bool IsActive => Tasks.IsBusy;
 
@@ -41,9 +41,10 @@ internal static unsafe class TradeTask
 
     internal static void ResetTradeSlotWait() => tradeSlotWaitDeadlineMs = 0;
 
-    internal static bool? WaitForTradeSlots(int targetCount)
+    internal static bool? WaitForSlotCountAbove(int slotsBeforeOffer)
     {
-        if (GetMyTradeSlotCount() >= targetCount)
+        var count = GetMyTradeSlotCount();
+        if (count > slotsBeforeOffer)
         {
             tradeSlotWaitDeadlineMs = 0;
             return true;
@@ -55,9 +56,9 @@ internal static unsafe class TradeTask
         if (Environment.TickCount64 >= tradeSlotWaitDeadlineMs)
         {
             tradeSlotWaitDeadlineMs = 0;
-            PluginLog.Debug(
-                $"Vending Machine: trade slot wait gave up (expected >={targetCount}, detected {GetMyTradeSlotCount()}).");
-            return true;
+            VmLog.Warning(
+                $"trade slot wait timed out (before={slotsBeforeOffer}, now={count}, need +1 slot).");
+            return false;
         }
 
         return false;
@@ -69,6 +70,11 @@ internal static unsafe class TradeTask
     internal static void BeginNumericWait() =>
         numericWaitDeadlineMs = Environment.TickCount64 + NumericWaitMs;
 
+    internal static void SetPendingOfferSlotsBefore(int slotsBefore) =>
+        pendingOfferSlotsBefore = slotsBefore;
+
+    internal static int GetPendingOfferSlotsBefore() => pendingOfferSlotsBefore;
+
     internal static bool? WaitForNumericPrompt()
     {
         if (IsNumericOpen())
@@ -76,9 +82,38 @@ internal static unsafe class TradeTask
 
         if (Environment.TickCount64 >= numericWaitDeadlineMs)
         {
-            PluginLog.Warning("Vending Machine: InputNumeric did not appear while setting gil.");
+            VmLog.Warning("InputNumeric did not appear.");
             return false;
         }
+
+        return false;
+    }
+
+    internal static bool? WaitForNumericOrItemPlaced(int slotsBeforeOffer)
+    {
+        if (IsNumericOpen())
+            return true;
+
+        if (GetMyTradeSlotCount() > slotsBeforeOffer)
+            return true;
+
+        if (Environment.TickCount64 >= numericWaitDeadlineMs)
+        {
+            VmLog.Warning(
+                $"no InputNumeric and no new trade slot after offer (slots {slotsBeforeOffer} -> {GetMyTradeSlotCount()}).");
+            return false;
+        }
+
+        return false;
+    }
+
+    internal static bool? ApplyItemQuantityIfNeeded(int quantity, int slotsBeforeOffer)
+    {
+        if (IsNumericOpen())
+            return ApplyNumericQuantity(quantity);
+
+        if (GetMyTradeSlotCount() > slotsBeforeOffer)
+            return true;
 
         return false;
     }
@@ -94,8 +129,7 @@ internal static unsafe class TradeTask
         if (!GenericThrottle() || !EzThrottler.Throttle("VmApplyNumeric", 100))
             return false;
 
-        var addon = (AtkUnitBase*)Svc.GameGui.GetAddonByName("InputNumeric", 1).Address;
-        if (!IsAddonReady(addon))
+        if (!TryGetAddonByName<AtkUnitBase>("InputNumeric", out var addon) || !IsAddonReady(addon))
             return false;
 
         var input = new AddonMaster.InputNumeric((nint)addon);
@@ -110,6 +144,14 @@ internal static unsafe class TradeTask
             return false;
 
         return true;
+    }
+
+    internal static bool? PauseBetweenOffers()
+    {
+        if (IsNumericOpen())
+            return false;
+
+        return EzThrottler.Throttle("VmPostOfferPause", 400);
     }
 
     internal static bool? OpenGilInput()
@@ -129,6 +171,4 @@ internal static unsafe class TradeTask
 
         return false;
     }
-
-    internal static bool? SetNumericInput(int num) => ApplyNumericQuantity(num);
 }

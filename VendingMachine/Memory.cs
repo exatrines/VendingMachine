@@ -2,11 +2,14 @@ using ECommons.EzHookManager;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using VendingMachine.Trade;
 
 namespace VendingMachine;
 
 public unsafe class Memory
 {
+    private const nint TradeAgentOffset = 0x28;
+
     private delegate void OfferItemTrade(nint tradeAddress, ushort slot, InventoryType type);
 
     [EzHook("48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC 30 83 B9 ?? ?? ?? ?? ?? 41 8B F0", false)]
@@ -31,15 +34,33 @@ public unsafe class Memory
     private void OfferItemTradeDetour(nint tradeAddress, ushort slot, InventoryType type) =>
         OfferItemTradeHook.Original(tradeAddress, slot, type);
 
-    public void SafeOfferItemTrade(InventoryType type, ushort slot)
+    public bool CanOfferItemTrade(InventoryType type, ushort slot)
     {
         if (!HookReady)
-            throw new InvalidOperationException("OfferItemTrade hook is not available.");
+            return false;
 
-        nint tradeAddress = ((nint)UIModule.Instance()->GetAgentModule()->GetAgentByInternalId(AgentId.Trade)) + 40;
         if (Utils.GetSlot(type, slot)->GetItemId() == 0)
-            throw new InvalidOperationException($"Attempted to trade from empty slot {type}, {slot}");
+            return false;
 
-        OfferItemTradeHook.Original(tradeAddress, slot, type);
+        return GetTradeAgentAddress() != 0;
+    }
+
+    public bool TryOfferItemTrade(InventoryType type, ushort slot)
+    {
+        if (!CanOfferItemTrade(type, slot))
+        {
+            VmLog.Warning($"cannot offer from {type} slot {slot} (hook={HookReady}).");
+            return false;
+        }
+
+        OfferItemTradeHook.Original(GetTradeAgentAddress(), slot, type);
+        return true;
+    }
+
+    /// <summary>Same trade-agent pointer Dropbox uses (AgentTrade + 0x28).</summary>
+    private static nint GetTradeAgentAddress()
+    {
+        var trade = UIModule.Instance()->GetAgentModule()->GetAgentByInternalId(AgentId.Trade);
+        return trade == null ? 0 : (nint)trade + TradeAgentOffset;
     }
 }

@@ -128,7 +128,7 @@ public sealed unsafe class TradeController
             if (TradeAddonReader.IsAwaitingFinalTradeConfirm()
                 && EzThrottler.Throttle("VmYesnoMissing", 5000))
             {
-                PluginLog.Debug("Vending Machine: awaiting trade execute but SelectYesno is not visible yet.");
+                VmLog.Debug("awaiting trade execute but SelectYesno is not visible yet.");
             }
 
             return;
@@ -152,7 +152,7 @@ public sealed unsafe class TradeController
             return;
 
         offerLockClicked = true;
-        PluginLog.Information("Vending Machine: clicking trade offer button (条件提示)");
+        VmLog.Information("clicking trade offer button (条件提示)");
 
         if (!TradeAddonReader.TryClickTradeOfferButton(addon))
         {

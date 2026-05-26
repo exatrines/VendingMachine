@@ -33,7 +33,7 @@ internal static unsafe class TradeYesnoHelper
         var clicked = false;
         ForEachTradeExecuteYesnoAddon(addon =>
         {
-            PluginLog.Information($"Vending Machine: confirming SelectYesno ({addon.Text})");
+            VmLog.Information($"confirming SelectYesno ({addon.Text})");
             clicked = TryClickYes(addon);
             return clicked;
         });
@@ -79,7 +79,7 @@ internal static unsafe class TradeYesnoHelper
         var yesButton = addon->YesButton;
         if (yesButton == null)
         {
-            PluginLog.Warning("Vending Machine: SelectYesno YesButton is null.");
+            VmLog.Warning("SelectYesno YesButton is null.");
             return TryClickYesViaCallback(yesno.Base);
         }
 
@@ -109,7 +109,7 @@ internal static unsafe class TradeYesnoHelper
         }
         catch (Exception ex)
         {
-            PluginLog.Debug($"Vending Machine: SelectYesno Callback.Fire(0) failed: {ex.Message}");
+            VmLog.Debug($"SelectYesno Callback.Fire(0) failed: {ex.Message}");
             return false;
         }
     }

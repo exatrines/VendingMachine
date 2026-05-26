@@ -1,6 +1,7 @@
 using ECommons.ExcelServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.Sheets;
+using VendingMachine.Trade;
 
 namespace VendingMachine.Services;
 
@@ -48,11 +49,11 @@ public static unsafe class ItemSearchService
                 if (itemId == 0)
                     continue;
 
-                var baseId = itemId % 1_000_000;
+                var baseId = ItemIdHelper.Normalize(itemId);
                 if (!tradeable.Contains(baseId))
                     continue;
 
-                var hq = itemId > 1_000_000;
+                var hq = ItemIdHelper.IsHq(itemId);
                 var desc = new ItemDescriptor(baseId, hq);
                 if (aggregated.TryGetValue(desc, out var existing))
                     aggregated[desc] = (existing.Count + slot->GetQuantity(), existing.CanStack);

@@ -34,6 +34,8 @@ public unsafe class Plugin : IDalamudPlugin
         EzCmd.Add("/vm", EzConfigGui.Open);
 
         Memory = new Memory();
+        if (!Memory.HookReady)
+            NotifyError("Vending Machine: trade item hook failed — Sell mode cannot offer items.");
 
         Svc.Framework.Update += Framework_Update;
     }

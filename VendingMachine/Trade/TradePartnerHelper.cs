@@ -19,15 +19,6 @@ public static unsafe class TradePartnerHelper
             ?.Name.ToString();
     }
 
-    public static void CancelTrade()
-    {
-        if (!Svc.Condition[ConditionFlag.TradeOpen])
-            return;
-
-        InventoryManager.Instance()->RefuseTrade();
-        PluginLog.Information("Vending Machine: canceled trade (gil over 1,000,000 limit).");
-    }
-
     public static bool TryRequestTradeWithPartner(ulong contentId, uint entityId)
     {
         var player = Svc.Objects.OfType<IPlayerCharacter>()
@@ -35,7 +26,7 @@ public static unsafe class TradePartnerHelper
 
         if (player == null)
         {
-            PluginLog.Warning("Vending Machine: split payment partner is not nearby; waiting.");
+            VmLog.Warning("split payment partner is not nearby; waiting.");
             return false;
         }
 
@@ -44,7 +35,7 @@ public static unsafe class TradePartnerHelper
 
         Svc.Targets.Target = player;
         InventoryManager.Instance()->SendTradeRequest(player.EntityId);
-        PluginLog.Information($"Vending Machine: sent trade request to {player.Name} for remaining gil payment.");
+        VmLog.Information($"sent trade request to {player.Name} for remaining gil payment.");
         return true;
     }
 }
