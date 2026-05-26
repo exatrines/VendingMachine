@@ -1,10 +1,13 @@
 name: Build
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build
+        required: true
+        default: main
+        type: string
 
 env:
   DALAMUD_HOME: /tmp/dalamud
@@ -16,6 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.branch }}
           submodules: recursive
 
       - name: Setup .NET
@@ -43,5 +47,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VendingMachine
+          name: VendingMachine-${{ inputs.branch }}-${{ github.sha }}
           path: VendingMachine/bin/Release/VendingMachine.zip
+          retention-days: 30

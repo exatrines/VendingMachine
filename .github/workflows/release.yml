@@ -3,8 +3,6 @@ name: Release
 on:
   push:
     branches: [main, master]
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -22,6 +20,25 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Read version from pluginmaster.json
+        run: |
+          ASSEMBLY_VERSION=$(jq -r '.[0].AssemblyVersion' pluginmaster.json)
+          if [[ -z "$ASSEMBLY_VERSION" || "$ASSEMBLY_VERSION" == "null" ]]; then
+            echo "AssemblyVersion not found in pluginmaster.json" >&2
+            exit 1
+          fi
+          RELEASE_TAG="v${ASSEMBLY_VERSION}"
+          IFS=. read -r major minor patch revision <<< "${ASSEMBLY_VERSION}"
+          if [[ -n "$revision" ]]; then
+            VERSION="${major}.${minor}.${patch}"
+          else
+            VERSION="${ASSEMBLY_VERSION}"
+          fi
+          echo "ASSEMBLY_VERSION=${ASSEMBLY_VERSION}" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=${RELEASE_TAG}" >> "$GITHUB_ENV"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -33,20 +50,6 @@ jobs:
           curl -fsSL https://goatcorp.github.io/dalamud-distrib/latest.zip -o /tmp/dalamud.zip
           unzip -q /tmp/dalamud.zip -d "$DALAMUD_HOME"
 
-      - name: Resolve version
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
-            echo "RELEASE_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
-            echo "PRERELEASE=false" >> "$GITHUB_ENV"
-          else
-            echo "VERSION=0.0.1" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=continuous" >> "$GITHUB_ENV"
-            echo "RELEASE_NAME=Continuous (${GITHUB_SHA:0:7})" >> "$GITHUB_ENV"
-            echo "PRERELEASE=true" >> "$GITHUB_ENV"
-          fi
-
       - name: Restore
         run: dotnet restore VendingMachine.sln
 
@@ -54,7 +57,7 @@ jobs:
         run: >
           dotnet build VendingMachine/VendingMachine.csproj -c Release --no-restore
           -p:Version=${{ env.VERSION }}
-          -p:AssemblyVersion=${{ env.VERSION }}.0
+          -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }}
 
       - name: Pack plugin zip
         run: |
@@ -66,6 +69,5 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}
-          prerelease: ${{ env.PRERELEASE == 'true' }}
           files: VendingMachine/bin/Release/VendingMachine.zip
           generate_release_notes: true
