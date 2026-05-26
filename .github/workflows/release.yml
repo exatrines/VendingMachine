@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  DALAMUD_HOME: /tmp/dalamud
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Download Dalamud
+        run: |
+          mkdir -p "$DALAMUD_HOME"
+          curl -fsSL https://goatcorp.github.io/dalamud-distrib/latest.zip -o /tmp/dalamud.zip
+          unzip -q /tmp/dalamud.zip -d "$DALAMUD_HOME"
+
+      - name: Resolve version from tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+
+      - name: Restore
+        run: dotnet restore VendingMachine.sln
+
+      - name: Build
+        run: >
+          dotnet build VendingMachine/VendingMachine.csproj -c Release --no-restore
+          -p:Version=${{ env.VERSION }}
+          -p:AssemblyVersion=${{ env.VERSION }}.0
+
+      - name: Pack plugin zip
+        run: |
+          cd VendingMachine/bin/Release
+          zip -j VendingMachine.zip VendingMachine.dll VendingMachine.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: VendingMachine/bin/Release/VendingMachine.zip
+          generate_release_notes: true

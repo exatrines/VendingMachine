@@ -1,0 +1,16 @@
+[
+  {
+    "Author": "mirage",
+    "Name": "Vending Machine",
+    "Punchline": "Automated player trade vending",
+    "Description": "Sell configured items for gil or buy offered items at configured prices during player trades.",
+    "InternalName": "VendingMachine",
+    "AssemblyVersion": "0.0.1.0",
+    "RepoUrl": "https://github.com/exatrines/VendingMachine",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 13,
+    "Tags": ["trade", "automation", "gil"],
+    "IconUrl": "",
+    "ImageUrl": ""
+  }
+]

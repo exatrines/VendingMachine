@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  DALAMUD_HOME: /tmp/dalamud
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Download Dalamud
+        run: |
+          mkdir -p "$DALAMUD_HOME"
+          curl -fsSL https://goatcorp.github.io/dalamud-distrib/latest.zip -o /tmp/dalamud.zip
+          unzip -q /tmp/dalamud.zip -d "$DALAMUD_HOME"
+
+      - name: Restore
+        run: dotnet restore VendingMachine.sln
+
+      - name: Build
+        run: dotnet build VendingMachine/VendingMachine.csproj -c Release --no-restore
+
+      - name: Pack plugin zip
+        run: |
+          cd VendingMachine/bin/Release
+          zip -j VendingMachine.zip VendingMachine.dll VendingMachine.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VendingMachine
+          path: VendingMachine/bin/Release/VendingMachine.zip

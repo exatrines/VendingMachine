@@ -1,0 +1,10 @@
+{
+  "Author": "mirage",
+  "Name": "Vending Machine",
+  "InternalName": "VendingMachine",
+  "Description": "Automated player trade: sell configured items for gil, or buy offered items at configured prices.",
+  "ApplicableVersion": "any",
+  "Punchline": "Personal trade vending machine",
+  "RepoUrl": "https://github.com/exatrines/VendingMachine",
+  "AcceptsFeedback": true
+}
