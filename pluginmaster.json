@@ -10,7 +10,7 @@
     "DownloadLinkInstall": "https://github.com/exatrines/VendingMachine/releases/download/v0.0.1.0/VendingMachine.zip",
     "DownloadLinkUpdate": "https://github.com/exatrines/VendingMachine/releases/download/v0.0.1.0/VendingMachine.zip",
     "ApplicableVersion": "any",
-    "DalamudApiLevel": 13,
+    "DalamudApiLevel": "15",
     "Tags": ["trade", "automation", "gil"],
     "IconUrl": "",
     "ImageUrl": ""
