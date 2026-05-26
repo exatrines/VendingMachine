@@ -59,6 +59,9 @@ jobs:
           -p:Version=${{ env.VERSION }}
           -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }}
 
+      - name: Sync plugin manifest
+        run: bash .github/scripts/sync-plugin-manifest.sh
+
       - name: Pack plugin zip
         run: |
           cd VendingMachine/bin/Release
