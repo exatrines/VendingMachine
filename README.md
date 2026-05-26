@@ -20,21 +20,24 @@ git submodule update --init --recursive
 dotnet build VendingMachine.sln -c Release
 ```
 
-Copy the contents of `VendingMachine\bin\Release\` (at minimum `VendingMachine.dll` and `VendingMachine.json`) to `%AppData%\XIVLauncher\devPlugins\VendingMachine\`, or add that folder in `/xlplugins` → Dev Plugin Locations.
+Copy `VendingMachine.dll`, `VendingMachine.json`, and `ECommons.dll` from `VendingMachine\bin\Release\` to `%AppData%\XIVLauncher\devPlugins\VendingMachine\` (or add that folder in `/xlplugins` → Dev Plugin Locations). ECommons is linked at compile time and must sit next to the plugin DLL at runtime.
 
 ## CI / Release (GitHub Actions)
 
 | Workflow | Trigger | Result |
 |----------|---------|--------|
-| `build.yml` | push / PR to `main` or `master` | Release ビルド + artifact |
-| `release.yml` | tag `v*` を push（例: `v0.0.2`） | GitHub Release + `VendingMachine.zip` |
+| `build.yml` | push / PR to `main` | ビルド検証 + artifact |
+| `release.yml` | `main` への push / tag `v*` / 手動実行 | GitHub Release + `VendingMachine.zip` |
 
-リリース手順:
+- **`main` に push** → `continuous` タグの pre-release を更新（zip 3 ファイル同梱）
+- **バージョン付きリリース** → タグを push:
 
 ```powershell
 git tag v0.0.2
 git push origin v0.0.2
 ```
+
+Actions 画面から **Release → Run workflow** で手動実行も可能です。
 
 CI では [dalamud-distrib](https://goatcorp.github.io/dalamud-distrib/latest.zip) を取得してビルドします。サブモジュール `ECommons` は checkout 時に自動取得されます。
 

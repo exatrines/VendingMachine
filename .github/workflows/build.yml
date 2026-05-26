@@ -38,7 +38,7 @@ jobs:
       - name: Pack plugin zip
         run: |
           cd VendingMachine/bin/Release
-          zip -j VendingMachine.zip VendingMachine.dll VendingMachine.json
+          zip -j VendingMachine.zip VendingMachine.dll VendingMachine.json ECommons.dll
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
