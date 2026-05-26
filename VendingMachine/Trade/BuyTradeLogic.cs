@@ -459,19 +459,6 @@ public sealed unsafe class BuyTradeLogic
         nextTradeRequestMs = Environment.TickCount64 + 3000;
     }
 
-    public TradeSession? BuildCompletedSession()
-    {
-        if (!session.Active || session.OrderItems.Count == 0)
-            return null;
-
-        return new TradeSession
-        {
-            Mode = TradeMode.Buy,
-            Lines = PriceCalculator.BuildBuyResultLines(session.OrderItems, C.BuyEntries),
-            TotalGil = session.TotalGil,
-        };
-    }
-
     public BuySplitPaymentDebugInfo GetSplitPaymentDebugInfo()
     {
         if (!session.Active)

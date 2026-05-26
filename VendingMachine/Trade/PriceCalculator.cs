@@ -6,7 +6,7 @@ public static class PriceCalculator
 {
     private const int StackSize = 999;
 
-    /// <summary>Sum of priced opponent slots (live trade) or stored stacks (echo after close).</summary>
+    /// <summary>Sum of priced opponent slots (live trade) or stored stacks.</summary>
     public static int CalculateBuyTotal(IReadOnlyList<BuyEntry> prices)
     {
         if (!TradeAddonReader.IsTradeSessionActive())
@@ -101,52 +101,4 @@ public static class PriceCalculator
 
     public static int SellExpectedTotal(IReadOnlyList<SellEntry> entries) =>
         entries.Sum(e => e.PriceGil);
-
-    public static List<TradeResultLine> BuildBuyResultLines(
-        IEnumerable<TradeAddonReader.OpponentItemStack> storedOffer,
-        IReadOnlyList<BuyEntry> prices)
-    {
-        var lines = new List<TradeResultLine>();
-
-        if (TradeAddonReader.IsTradeSessionActive())
-        {
-            for (var slot = 0; slot < 5; slot++)
-            {
-                TradeAddonReader.GetTradeSlotFromMemory(local: false, slot, out var itemId, out var quantity, out _);
-                if (itemId == 0 || quantity == 0)
-                    continue;
-
-                var pricePerStack = prices.FirstOrDefault(x => x.ItemId == itemId)?.PricePerStackGil ?? 0;
-                var pricePerItem = ItemSearchService.PricePerItemFromStack(pricePerStack);
-                lines.AddRange(TradeResultFormatter.DecomposeQuantity(itemId, (int)quantity, pricePerStack, pricePerItem));
-            }
-        }
-        else
-        {
-            foreach (var stack in storedOffer.OrderBy(x => x.ItemId))
-            {
-                var itemId = stack.ItemId % 1_000_000;
-                var pricePerStack = prices.FirstOrDefault(x => x.ItemId == itemId)?.PricePerStackGil ?? 0;
-                var pricePerItem = ItemSearchService.PricePerItemFromStack(pricePerStack);
-                lines.AddRange(TradeResultFormatter.DecomposeQuantity(stack.ItemId, stack.Quantity, pricePerStack, pricePerItem));
-            }
-        }
-
-        return TradeResultFormatter.PadToFive(lines);
-    }
-
-    public static List<TradeResultLine> BuildSellResultLines(IReadOnlyList<SellEntry> entries)
-    {
-        var lines = entries
-            .Where(e => e.ItemId != 0)
-            .Select(e => new TradeResultLine
-            {
-                ItemName = ItemSearchService.GetItemName(e.ItemId),
-                Quantity = e.Count,
-                LineGil = e.PriceGil,
-            })
-            .ToList();
-
-        return TradeResultFormatter.PadToFive(lines);
-    }
 }

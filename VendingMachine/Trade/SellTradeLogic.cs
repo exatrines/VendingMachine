@@ -107,16 +107,5 @@ public sealed unsafe class SellTradeLogic
 
     public bool ShouldConfirm() => phase == SellPhase.ReadyToConfirm && TradeTask.ConfirmAllowed;
 
-    public TradeSession? BuildCompletedSession()
-    {
-        if (activeSellEntries.Count == 0)
-            return null;
-
-        return new TradeSession
-        {
-            Mode = TradeMode.Sell,
-            Lines = PriceCalculator.BuildSellResultLines(activeSellEntries),
-            TotalGil = expectedGil,
-        };
-    }
+    public bool HadActiveTrade => itemsEnqueued && phase != SellPhase.Failed;
 }

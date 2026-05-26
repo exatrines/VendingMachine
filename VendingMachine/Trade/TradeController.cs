@@ -1,4 +1,3 @@
-using Dalamud.Game.Text;
 using ECommons.Throttlers;
 
 namespace VendingMachine.Trade;
@@ -12,7 +11,6 @@ public sealed unsafe class TradeController
     private readonly SellTradeLogic sellLogic = new();
     private readonly BuyTradeLogic buyLogic = new();
 
-    private TradeSession? pendingEchoSession;
     private bool wasTradeOpen;
     private bool offerLockClicked;
 
@@ -32,7 +30,6 @@ public sealed unsafe class TradeController
     {
         sellLogic.Reset();
         buyLogic.Reset();
-        pendingEchoSession = null;
         offerLockClicked = false;
     }
 
@@ -48,7 +45,8 @@ public sealed unsafe class TradeController
 
         if (wasTradeOpen && !tradeOpen)
         {
-            if (pendingEchoSession != null || (C.Mode == TradeMode.Buy && buyLogic.HasActiveBuySession))
+            if ((C.Mode == TradeMode.Buy && buyLogic.HasActiveBuySession)
+                || (C.Mode == TradeMode.Sell && sellLogic.HadActiveTrade))
                 OnTradeComplete();
             else
                 OnTradeCanceled();
@@ -78,34 +76,22 @@ public sealed unsafe class TradeController
         if (C.Mode == TradeMode.Sell)
         {
             if (sellLogic.ShouldConfirm())
-                TryClickOfferLock(armEchoOnLock: true);
+                TryClickOfferLock();
             return;
         }
 
         if (buyLogic.ShouldClickTradeOfferLock())
-            TryClickOfferLock(armEchoOnLock: false);
+            TryClickOfferLock();
     }
 
     public void OnTradeComplete()
     {
         if (C.Mode == TradeMode.Buy && buyLogic.TryCompleteTradeAndContinue())
         {
-            pendingEchoSession = null;
             offerLockClicked = false;
             return;
         }
 
-        var session = pendingEchoSession
-            ?? (C.Mode == TradeMode.Sell ? sellLogic.BuildCompletedSession() : buyLogic.BuildCompletedSession());
-
-        if (session == null)
-        {
-            Reset();
-            return;
-        }
-
-        PrintEcho(TradeResultFormatter.Format(session.Mode, session.Lines, session.TotalGil));
-        pendingEchoSession = null;
         Reset();
     }
 
@@ -115,13 +101,6 @@ public sealed unsafe class TradeController
             buyLogic.Reset();
 
         Reset();
-    }
-
-    public void ArmEchoForCurrentTrade()
-    {
-        pendingEchoSession = C.Mode == TradeMode.Sell
-            ? sellLogic.BuildCompletedSession()
-            : buyLogic.BuildCompletedSession();
     }
 
     private bool TryAcceptTradeYesnoIfReady()
@@ -155,13 +134,10 @@ public sealed unsafe class TradeController
             return;
         }
 
-        if (!TradeYesnoHelper.TryAcceptTradeExecuteYesno())
-            return;
-
-        ArmEchoForCurrentTrade();
+        TradeYesnoHelper.TryAcceptTradeExecuteYesno();
     }
 
-    private void TryClickOfferLock(bool armEchoOnLock)
+    private void TryClickOfferLock()
     {
         if (offerLockClicked || TradeAddonReader.IsLocalTradeLocked())
             return;
@@ -186,12 +162,5 @@ public sealed unsafe class TradeController
 
         if (C.Mode == TradeMode.Buy)
             buyLogic.OnSelfOfferLocked();
-        else if (armEchoOnLock)
-            ArmEchoForCurrentTrade();
-    }
-
-    private static void PrintEcho(string text)
-    {
-        Svc.Chat.Print(new XivChatEntry { Message = text, Type = XivChatType.Echo });
     }
 }
