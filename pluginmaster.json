@@ -7,6 +7,8 @@
     "InternalName": "VendingMachine",
     "AssemblyVersion": "0.0.1.0",
     "RepoUrl": "https://github.com/exatrines/VendingMachine",
+    "DownloadLinkInstall": "https://github.com/exatrines/VendingMachine/releases/download/v0.0.1.0/VendingMachine.zip",
+    "DownloadLinkUpdate": "https://github.com/exatrines/VendingMachine/releases/download/v0.0.1.0/VendingMachine.zip",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 13,
     "Tags": ["trade", "automation", "gil"],
