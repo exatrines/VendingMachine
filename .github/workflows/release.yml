@@ -20,11 +20,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Read version from pluginmaster.json
+      - name: Read version from VendingMachine.json
         run: |
-          ASSEMBLY_VERSION=$(jq -r '.[0].AssemblyVersion' pluginmaster.json)
+          ASSEMBLY_VERSION=$(jq -r '.AssemblyVersion' VendingMachine/VendingMachine.json)
           if [[ -z "$ASSEMBLY_VERSION" || "$ASSEMBLY_VERSION" == "null" ]]; then
-            echo "AssemblyVersion not found in pluginmaster.json" >&2
+            echo "AssemblyVersion not found in VendingMachine/VendingMachine.json" >&2
             exit 1
           fi
           RELEASE_TAG="v${ASSEMBLY_VERSION}"
